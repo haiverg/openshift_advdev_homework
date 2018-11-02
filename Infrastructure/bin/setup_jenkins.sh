@@ -32,6 +32,6 @@ TMPL_DIR=$(dirname $0)/../templates
 
 //Setting up Jenkins project base on Jenkins template build on the course
 echo "Setting up Jenkins in project ${GUID}-jenkins from Git Repo ${REPO} for Cluster ${CLUSTER}"
-oc -n $GUID-jenkins new-app -f ${TMPL_DIR}/hgp-jenkins.yaml
+oc new-app -f ${TMPL_DIR}/hgp-jenkins.yaml -n $GUID-jenkins
 
 
