@@ -10,7 +10,9 @@ fi
 GUID=$1
 REPO=$2
 CLUSTER=$3
-echo "Setting up Jenkins in project ${GUID}-jenkins from Git Repo ${REPO} for Cluster ${CLUSTER}"
+
+//Set the dir name of the templates to use
+TMPL_DIR=$(dirname $0)/../templates
 
 # Code to set up the Jenkins project to execute the
 # three pipelines.
@@ -27,3 +29,9 @@ echo "Setting up Jenkins in project ${GUID}-jenkins from Git Repo ${REPO} for Cl
 # * CLUSTER: the base url of the cluster used (e.g. na39.openshift.opentlc.com)
 
 # To be Implemented by Student
+
+//Setting up Jenkins project base on Jenkins template build on the course
+echo "Setting up Jenkins in project ${GUID}-jenkins from Git Repo ${REPO} for Cluster ${CLUSTER}"
+oc -n $GUID-jenkins new-app -f ${TMPL_DIR}/hgp-jenkins.yaml
+
+

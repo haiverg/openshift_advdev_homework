@@ -1,0 +1,357 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  creationTimestamp: null
+  name: hgp-jenkins
+objects:
+- apiVersion: apps.openshift.io/v1
+  kind: DeploymentConfig
+  metadata:
+    annotations:
+      openshift.io/generated-by: OpenShiftNewApp
+      template.alpha.openshift.io/wait-for-ready: "true"
+    creationTimestamp: null
+    generation: 3
+    labels:
+      app: jenkins-persistent
+      template: jenkins-persistent-template
+    name: jenkins
+  spec:
+    replicas: 1
+    revisionHistoryLimit: 10
+    selector:
+      name: jenkins
+    strategy:
+      activeDeadlineSeconds: 21600
+      recreateParams:
+        timeoutSeconds: 600
+      resources: {}
+      type: Recreate
+    template:
+      metadata:
+        annotations:
+          openshift.io/generated-by: OpenShiftNewApp
+        creationTimestamp: null
+        labels:
+          name: jenkins
+      spec:
+        containers:
+        - env:
+          - name: OPENSHIFT_ENABLE_OAUTH
+            value: "true"
+          - name: OPENSHIFT_ENABLE_REDIRECT_PROMPT
+            value: "true"
+          - name: DISABLE_ADMINISTRATIVE_MONITORS
+            value: "true"
+          - name: KUBERNETES_MASTER
+            value: https://kubernetes.default:443
+          - name: KUBERNETES_TRUST_CERTIFICATES
+            value: "true"
+          - name: JENKINS_SERVICE_NAME
+            value: jenkins
+          - name: JNLP_SERVICE_NAME
+            value: jenkins-jnlp
+          - name: ENABLE_FATAL_ERROR_LOG_FILE
+            value: "false"
+          image: docker-registry.default.svc:5000/openshift/jenkins@sha256:bd8ae92065ee1c7a58ce49ab9bf16ce2113920a1684eda88a4cf80cdac96e978
+          imagePullPolicy: IfNotPresent
+          livenessProbe:
+            failureThreshold: 2
+            httpGet:
+              path: /login
+              port: 8080
+              scheme: HTTP
+            initialDelaySeconds: 420
+            periodSeconds: 360
+            successThreshold: 1
+            timeoutSeconds: 240
+          name: jenkins
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /login
+              port: 8080
+              scheme: HTTP
+            initialDelaySeconds: 3
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 240
+          resources:
+            limits:
+              cpu: "2"
+              memory: 2Gi
+            requests:
+              cpu: "1"
+          securityContext:
+            capabilities: {}
+            privileged: false
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /var/lib/jenkins
+            name: jenkins-data
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        serviceAccount: jenkins
+        serviceAccountName: jenkins
+        terminationGracePeriodSeconds: 30
+        volumes:
+        - name: jenkins-data
+          persistentVolumeClaim:
+            claimName: jenkins
+    test: false
+    triggers:
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - jenkins
+        from:
+          kind: ImageStreamTag
+          name: jenkins:2
+          namespace: openshift
+        lastTriggeredImage: docker-registry.default.svc:5000/openshift/jenkins@sha256:bd8ae92065ee1c7a58ce49ab9bf16ce2113920a1684eda88a4cf80cdac96e978
+      type: ImageChange
+    - type: ConfigChange
+  status:
+    availableReplicas: 0
+    latestVersion: 0
+    observedGeneration: 0
+    replicas: 0
+    unavailableReplicas: 0
+    updatedReplicas: 0
+- apiVersion: route.openshift.io/v1
+  kind: Route
+  metadata:
+    annotations:
+      haproxy.router.openshift.io/timeout: 4m
+      openshift.io/generated-by: OpenShiftNewApp
+      openshift.io/host.generated: "true"
+      template.openshift.io/expose-uri: http://{.spec.host}{.spec.path}
+    creationTimestamp: null
+    labels:
+      app: jenkins-persistent
+      template: jenkins-persistent-template
+    name: jenkins
+  spec:
+    host: jenkins-hgp-jenkins.apps.4f28.openshift.opentlc.com
+    tls:
+      insecureEdgeTerminationPolicy: Redirect
+      termination: edge
+    to:
+      kind: Service
+      name: jenkins
+      weight: 100
+    wildcardPolicy: None
+  status:
+    ingress:
+    - conditions:
+      - lastTransitionTime: 2018-10-30T16:41:48Z
+        status: "True"
+        type: Admitted
+      host: jenkins-hgp-jenkins.apps.4f28.openshift.opentlc.com
+      routerName: router
+      wildcardPolicy: None
+- apiVersion: image.openshift.io/v1
+  kind: ImageStream
+  metadata:
+    annotations:
+      openshift.io/generated-by: OpenShiftNewBuild
+    creationTimestamp: null
+    generation: 1
+    labels:
+      build: jenkins-slave-appdev
+    name: jenkins-slave-appdev
+  spec:
+    lookupPolicy:
+      local: false
+    tags:
+    - annotations: null
+      from:
+        kind: DockerImage
+        name: docker-registry.default.svc:5000/hgp-jenkins/jenkins-slave-appdev:latest
+      generation: null
+      importPolicy: {}
+      name: latest
+      referencePolicy:
+        type: ""
+  status:
+    dockerImageRepository: ""
+- apiVersion: image.openshift.io/v1
+  kind: ImageStream
+  metadata:
+    annotations:
+      openshift.io/generated-by: OpenShiftNewBuild
+      openshift.io/image.dockerRepositoryCheck: 2018-10-30T16:44:57Z
+    creationTimestamp: null
+    generation: 2
+    labels:
+      build: jenkins-slave-appdev
+    name: jenkins-slave-maven-centos7
+  spec:
+    lookupPolicy:
+      local: false
+    tags:
+    - annotations:
+        openshift.io/imported-from: docker.io/openshift/jenkins-slave-maven-centos7:v3.9
+      from:
+        kind: DockerImage
+        name: docker-registry.default.svc:5000/hgp-jenkins/jenkins-slave-maven-centos7:v3.9
+      generation: 2
+      importPolicy: {}
+      name: v3.9
+      referencePolicy:
+        type: Source
+  status:
+    dockerImageRepository: ""
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      openshift.io/generated-by: OpenShiftNewApp
+      service.alpha.openshift.io/dependencies: '[{"name": "jenkins-jnlp", "namespace":
+        "", "kind": "Service"}]'
+      service.openshift.io/infrastructure: "true"
+    creationTimestamp: null
+    labels:
+      app: jenkins-persistent
+      template: jenkins-persistent-template
+    name: jenkins
+  spec:
+    ports:
+    - name: web
+      port: 80
+      protocol: TCP
+      targetPort: 8080
+    selector:
+      name: jenkins
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      openshift.io/generated-by: OpenShiftNewApp
+    creationTimestamp: null
+    labels:
+      app: jenkins-persistent
+      template: jenkins-persistent-template
+    name: jenkins-jnlp
+  spec:
+    ports:
+    - name: agent
+      port: 50000
+      protocol: TCP
+      targetPort: 50000
+    selector:
+      name: jenkins
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
+- apiVersion: v1
+  kind: PersistentVolumeClaim
+  metadata:
+    annotations:
+      openshift.io/generated-by: OpenShiftNewApp
+      pv.kubernetes.io/bind-completed: "yes"
+      pv.kubernetes.io/bound-by-controller: "yes"
+    creationTimestamp: null
+    labels:
+      app: jenkins-persistent
+      template: jenkins-persistent-template
+    name: jenkins
+  spec:
+    accessModes:
+    - ReadWriteOnce
+    resources:
+      requests:
+        storage: 4Gi
+    volumeName: vol135
+  status: {}
+- apiVersion: build.openshift.io/v1
+  kind: BuildConfig
+  metadata:
+    annotations:
+      openshift.io/generated-by: OpenShiftNewBuild
+    creationTimestamp: null
+    labels:
+      build: jenkins-slave-appdev
+    name: jenkins-slave-appdev
+  spec:
+    failedBuildsHistoryLimit: 5
+    nodeSelector: null
+    output:
+      to:
+        kind: ImageStreamTag
+        name: jenkins-slave-appdev:latest
+    postCommit: {}
+    resources: {}
+    runPolicy: Serial
+    source:
+      dockerfile: |-
+        FROM docker.io/openshift/jenkins-slave-maven-centos7:v3.9
+
+              USER root
+        RUN yum -y install skopeo && yum clean all
+
+              USER 1001
+      type: Dockerfile
+    strategy:
+      dockerStrategy:
+        from:
+          kind: ImageStreamTag
+          name: jenkins-slave-maven-centos7:v3.9
+      type: Docker
+    successfulBuildsHistoryLimit: 5
+    triggers:
+    - github:
+        secret: tAfwhjaWuXx_WpZuZJG4
+      type: GitHub
+    - generic:
+        secret: v93dYOhi9x_SJNefg7hE
+      type: Generic
+    - type: ConfigChange
+    - imageChange: {}
+      type: ImageChange
+  status:
+    lastVersion: 0
+- apiVersion: build.openshift.io/v1
+  kind: BuildConfig
+  metadata:
+    creationTimestamp: null
+    name: tasks-pipeline
+  spec:
+    failedBuildsHistoryLimit: 5
+    nodeSelector: {}
+    output: {}
+    postCommit: {}
+    resources: {}
+    runPolicy: Serial
+    source:
+      git:
+        ref: master
+        uri: http://gogs.hgp-gogs.svc.cluster.local:3000/CICDLabs/openshift-tasks-private
+      sourceSecret:
+        name: gogs-secret
+      type: Git
+    strategy:
+      jenkinsPipelineStrategy:
+        jenkinsfilePath: Jenkinsfile
+      type: JenkinsPipeline
+    successfulBuildsHistoryLimit: 5
+    triggers: []
+  status:
+    lastVersion: 0
+- apiVersion: v1
+  data:
+    password: cjNkaDR0MSE=
+    username: dXNlcjE3
+  kind: Secret
+  metadata:
+    creationTimestamp: null
+    name: gogs-secret
+  type: kubernetes.io/basic-auth
