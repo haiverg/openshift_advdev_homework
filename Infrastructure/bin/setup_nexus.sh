@@ -33,4 +33,4 @@ echo "Setting up Nexus in project $GUID-nexus"
 # To be Implemented by Student
 
 oc new-app -f ${TMPL_DIR}/hgp-nexus.yaml -n $GUID-nexus
-oc rollout status dc/nexsus3 -w -n $GUID-nexus
+oc rollout status dc/nexus3 -w -n $GUID-nexus
