@@ -2,21 +2,21 @@ apiVersion: template.openshift.io/v1
 kind: Template
 metadata:
   name: hgp-jenkins
+labels:
+  app: ${JENKINS_APP_NAME} 
+  template: ${JENKINS_APP_NAME}-template
 objects:
 - apiVersion: apps.openshift.io/v1
   kind: DeploymentConfig
   metadata:
     annotations:
-      openshift.io/generated-by: OpenShiftNewApp
       template.alpha.openshift.io/wait-for-ready: "true"
-    generation: 3
     labels:
-      app: jenkins-persistent
-      template: jenkins-persistent-template
+      app: ${JENKINS_APP_NAME}
+      template: ${JENKINS_APP_NAME}-template
     name: jenkins
   spec:
     replicas: 1
-    revisionHistoryLimit: 10
     selector:
       name: jenkins
     strategy:
@@ -27,15 +27,13 @@ objects:
       type: Recreate
     template:
       metadata:
-        annotations:
-          openshift.io/generated-by: OpenShiftNewApp
         labels:
           name: jenkins
       spec:
         containers:
         - env:
           - name: OPENSHIFT_ENABLE_OAUTH
-            value: "true"
+            value: ${ENABLE_OAUTH}
           - name: OPENSHIFT_ENABLE_REDIRECT_PROMPT
             value: "true"
           - name: DISABLE_ADMINISTRATIVE_MONITORS
@@ -75,10 +73,11 @@ objects:
             timeoutSeconds: 240
           resources:
             limits:
-              cpu: "2"
-              memory: 2Gi
+              cpu: ${CPU_LIM}
+              memory: ${MEMORY_LIMIT}
             requests:
-              cpu: "1"
+              cpu: ${CPU_REQ}
+              memory: ${MEMORY_REQ}
           securityContext:
             capabilities: {}
             privileged: false
@@ -111,27 +110,18 @@ objects:
         lastTriggeredImage: docker-registry.default.svc:5000/openshift/jenkins@sha256:bd8ae92065ee1c7a58ce49ab9bf16ce2113920a1684eda88a4cf80cdac96e978
       type: ImageChange
     - type: ConfigChange
-  status:
-    availableReplicas: 0
-    latestVersion: 0
-    observedGeneration: 0
-    replicas: 0
-    unavailableReplicas: 0
-    updatedReplicas: 0
 - apiVersion: route.openshift.io/v1
   kind: Route
   metadata:
     annotations:
       haproxy.router.openshift.io/timeout: 4m
-      openshift.io/generated-by: OpenShiftNewApp
       openshift.io/host.generated: "true"
       template.openshift.io/expose-uri: http://{.spec.host}{.spec.path}
     labels:
-      app: jenkins-persistent
-      template: jenkins-persistent-template
+      app: ${JENKINS_APP_NAME}
+      template: ${JENKINS_APP_NAME}-template
     name: jenkins
   spec:
-    host: jenkins-hgp-jenkins.apps.4f28.openshift.opentlc.com
     tls:
       insecureEdgeTerminationPolicy: Redirect
       termination: edge
@@ -139,23 +129,12 @@ objects:
       kind: Service
       name: jenkins
       weight: 100
-    wildcardPolicy: None
-  status:
-    ingress:
-    - conditions:
-      - lastTransitionTime: 2018-10-30T16:41:48Z
-        status: "True"
-        type: Admitted
-      host: jenkins-hgp-jenkins.apps.4f28.openshift.opentlc.com
-      routerName: router
-      wildcardPolicy: None
 - apiVersion: image.openshift.io/v1
   kind: ImageStream
   metadata:
-    annotations:
-      openshift.io/generated-by: OpenShiftNewBuild
-    generation: 1
     labels:
+      app: ${JENKINS_APP_NAME}
+      template: ${JENKINS_APP_NAME}-template
       build: jenkins-slave-appdev
     name: jenkins-slave-appdev
   spec:
@@ -171,16 +150,12 @@ objects:
       name: latest
       referencePolicy:
         type: ""
-  status:
-    dockerImageRepository: ""
 - apiVersion: image.openshift.io/v1
   kind: ImageStream
   metadata:
-    annotations:
-      openshift.io/generated-by: OpenShiftNewBuild
-      openshift.io/image.dockerRepositoryCheck: 2018-10-30T16:44:57Z
-    generation: 2
     labels:
+      app: ${JENKINS_APP_NAME}
+      template: ${JENKINS_APP_NAME}-template
       build: jenkins-slave-appdev
     name: jenkins-slave-maven-centos7
   spec:
@@ -197,19 +172,16 @@ objects:
       name: v3.9
       referencePolicy:
         type: Source
-  status:
-    dockerImageRepository: ""
 - apiVersion: v1
   kind: Service
   metadata:
     annotations:
-      openshift.io/generated-by: OpenShiftNewApp
       service.alpha.openshift.io/dependencies: '[{"name": "jenkins-jnlp", "namespace":
         "", "kind": "Service"}]'
       service.openshift.io/infrastructure: "true"
     labels:
-      app: jenkins-persistent
-      template: jenkins-persistent-template
+      app: ${JENKINS_APP_NAME}
+      template: ${JENKINS_APP_NAME}-template
     name: jenkins
   spec:
     ports:
@@ -229,8 +201,8 @@ objects:
     annotations:
       openshift.io/generated-by: OpenShiftNewApp
     labels:
-      app: jenkins-persistent
-      template: jenkins-persistent-template
+      app: ${JENKINS_APP_NAME}
+      template: ${JENKINS_APP_NAME}-template
     name: jenkins-jnlp
   spec:
     ports:
@@ -252,23 +224,23 @@ objects:
       pv.kubernetes.io/bind-completed: "yes"
       pv.kubernetes.io/bound-by-controller: "yes"
     labels:
-      app: jenkins-persistent
-      template: jenkins-persistent-template
+      app: ${JENKINS_APP_NAME}
+      template: ${JENKINS_APP_NAME}-template
     name: jenkins
   spec:
     accessModes:
     - ReadWriteOnce
     resources:
       requests:
-        storage: 4Gi
+        storage: ${VOLUME_CAPACITY}
     volumeName: vol135
   status: {}
 - apiVersion: build.openshift.io/v1
   kind: BuildConfig
   metadata:
-    annotations:
-      openshift.io/generated-by: OpenShiftNewBuild
     labels:
+      app: ${JENKINS_APP_NAME}
+      template: ${JENKINS_APP_NAME}-template
       build: jenkins-slave-appdev
     name: jenkins-slave-appdev
   spec:
@@ -309,37 +281,50 @@ objects:
       type: ImageChange
   status:
     lastVersion: 0
-- apiVersion: build.openshift.io/v1
-  kind: BuildConfig
-  metadata:
-    name: tasks-pipeline
-  spec:
-    failedBuildsHistoryLimit: 5
-    nodeSelector: {}
-    output: {}
-    postCommit: {}
-    resources: {}
-    runPolicy: Serial
-    source:
-      git:
-        ref: master
-        uri: http://gogs.hgp-gogs.svc.cluster.local:3000/CICDLabs/openshift-tasks-private
-      sourceSecret:
-        name: gogs-secret
-      type: Git
-    strategy:
-      jenkinsPipelineStrategy:
-        jenkinsfilePath: Jenkinsfile
-      type: JenkinsPipeline
-    successfulBuildsHistoryLimit: 5
-    triggers: []
-  status:
-    lastVersion: 0
-- apiVersion: v1
-  data:
-    password: cjNkaDR0MSE=
-    username: dXNlcjE3
-  kind: Secret
-  metadata:
-    name: gogs-secret
-  type: kubernetes.io/basic-auth
+parameters:
+- name: JENKINS_APP_NAME
+  value: hgp-jenkins
+  displayName: Jenkins App Name
+  description: The name of Jenkins Aplication. 
+- description: The name of the OpenShift Service exposed for the Jenkins container.
+  displayName: Jenkins Service Name
+  name: JENKINS_SERVICE_NAME
+  value: jenkins
+- description: The name of the service used for master/slave communication.
+  displayName: Jenkins JNLP Service Name
+  name: JNLP_SERVICE_NAME
+  value: jenkins-jnlp
+- description: Whether to enable OAuth OpenShift integration. If false, the static
+    account 'admin' will be initialized with the password 'password'.
+  displayName: Enable OAuth in Jenkins
+  name: ENABLE_OAUTH
+  value: "true"
+- name: CPU_REQ
+  value: "1"
+  displayName: Minimum Jenkins CPU
+  description: Minimum amount of CPU for jenkins container.
+- name: CPU_LIM
+  value: "2"
+  displayName: Maximum Jenkins CPU
+  description: Maximum amount of CPU for jenkins container.
+- description: Minimum amount of memory the container can use.
+  displayName: Memory Request
+  name: MEMORY_REQ
+  value: 1Gi
+- description: Maximum amount of memory the container can use.
+  displayName: Memory Limit
+  name: MEMORY_LIMIT
+  value: 2Gi
+- description: Volume space available for data, e.g. 512Mi, 2Gi.
+  displayName: Volume Capacity
+  name: VOLUME_CAPACITY
+  required: true
+  value: 4Gi
+- description: The OpenShift Namespace where the Jenkins ImageStream resides.
+  displayName: Jenkins ImageStream Namespace
+  name: NAMESPACE
+  value: openshift
+- description: Name of the ImageStreamTag to be used for the Jenkins image.
+  displayName: Jenkins ImageStreamTag
+  name: JENKINS_IMAGE_STREAM_TAG
+  value: jenkins:2
