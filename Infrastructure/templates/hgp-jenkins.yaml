@@ -14,21 +14,19 @@ objects:
     labels:
       app: ${JENKINS_APP_NAME}
       template: ${JENKINS_APP_NAME}-template
-    name: jenkins
+    name: ${JENKINS_SERVICE_NAME}
   spec:
     replicas: 1
     selector:
-      name: jenkins
+      name: ${JENKINS_SERVICE_NAME}
     strategy:
-      activeDeadlineSeconds: 21600
       recreateParams:
         timeoutSeconds: 600
-      resources: {}
       type: Recreate
     template:
       metadata:
         labels:
-          name: jenkins
+          name: ${JENKINS_SERVICE_NAME}
       spec:
         containers:
         - env:
@@ -43,15 +41,15 @@ objects:
           - name: KUBERNETES_TRUST_CERTIFICATES
             value: "true"
           - name: JENKINS_SERVICE_NAME
-            value: jenkins
+            value: ${JENKINS_SERVICE_NAME}
           - name: JNLP_SERVICE_NAME
-            value: jenkins-jnlp
+            value: ${JNLP_SERVICE_NAME}
           - name: ENABLE_FATAL_ERROR_LOG_FILE
             value: "false"
-          image: docker-registry.default.svc:5000/openshift/jenkins@sha256:bd8ae92065ee1c7a58ce49ab9bf16ce2113920a1684eda88a4cf80cdac96e978
+            image: jenkins:latest
           imagePullPolicy: IfNotPresent
           livenessProbe:
-            failureThreshold: 2
+            failureThreshold: 3
             httpGet:
               path: /login
               port: 8080
@@ -67,10 +65,10 @@ objects:
               path: /login
               port: 8080
               scheme: HTTP
-            initialDelaySeconds: 3
+            initialDelaySeconds: 60
             periodSeconds: 10
             successThreshold: 1
-            timeoutSeconds: 240
+            timeoutSeconds: 600
           resources:
             limits:
               cpu: ${CPU_LIM}
@@ -90,14 +88,12 @@ objects:
         restartPolicy: Always
         schedulerName: default-scheduler
         securityContext: {}
-        serviceAccount: jenkins
-        serviceAccountName: jenkins
-        terminationGracePeriodSeconds: 30
+        serviceAccount: ${JENKINS_SERVICE_NAME}
+        serviceAccountName: ${JENKINS_SERVICE_NAME}
         volumes:
         - name: jenkins-data
           persistentVolumeClaim:
-            claimName: jenkins
-    test: false
+            claimName: ${JENKINS_SERVICE_NAME}
     triggers:
     - imageChangeParams:
         automatic: true
@@ -105,9 +101,9 @@ objects:
         - jenkins
         from:
           kind: ImageStreamTag
-          name: jenkins:2
-          namespace: openshift
-        lastTriggeredImage: docker-registry.default.svc:5000/openshift/jenkins@sha256:bd8ae92065ee1c7a58ce49ab9bf16ce2113920a1684eda88a4cf80cdac96e978
+          name: ${JENKINS_IMAGE_STREAM_TAG}
+          namespace: ${NAMESPACE}
+        lastTriggeredImage: ""
       type: ImageChange
     - type: ConfigChange
 - apiVersion: route.openshift.io/v1
@@ -115,20 +111,18 @@ objects:
   metadata:
     annotations:
       haproxy.router.openshift.io/timeout: 4m
-      openshift.io/host.generated: "true"
       template.openshift.io/expose-uri: http://{.spec.host}{.spec.path}
     labels:
       app: ${JENKINS_APP_NAME}
       template: ${JENKINS_APP_NAME}-template
-    name: jenkins
+    name: ${JENKINS_SERVICE_NAME}
   spec:
     tls:
       insecureEdgeTerminationPolicy: Redirect
       termination: edge
     to:
       kind: Service
-      name: jenkins
-      weight: 100
+      name: ${JENKINS_SERVICE_NAME}
 - apiVersion: image.openshift.io/v1
   kind: ImageStream
   metadata:
@@ -166,7 +160,7 @@ objects:
         openshift.io/imported-from: docker.io/openshift/jenkins-slave-maven-centos7:v3.9
       from:
         kind: DockerImage
-        name: docker-registry.default.svc:5000/hgp-jenkins/jenkins-slave-maven-centos7:v3.9
+        name: docker.io/openshift/jenkins-slave-maven-centos7:v3.9 
       generation: 2
       importPolicy: {}
       name: v3.9
@@ -176,13 +170,13 @@ objects:
   kind: Service
   metadata:
     annotations:
-      service.alpha.openshift.io/dependencies: '[{"name": "jenkins-jnlp", "namespace":
+      service.alpha.openshift.io/dependencies: '[{"name": "${JNLP_SERVICE_NAME}", "namespace":
         "", "kind": "Service"}]'
       service.openshift.io/infrastructure: "true"
     labels:
       app: ${JENKINS_APP_NAME}
       template: ${JENKINS_APP_NAME}-template
-    name: jenkins
+    name: ${JENKINS_SERVICE_NAME} 
   spec:
     ports:
     - name: web
@@ -190,20 +184,16 @@ objects:
       protocol: TCP
       targetPort: 8080
     selector:
-      name: jenkins
+      name: ${JENKINS_SERVICE_NAME} 
     sessionAffinity: None
     type: ClusterIP
-  status:
-    loadBalancer: {}
 - apiVersion: v1
   kind: Service
   metadata:
-    annotations:
-      openshift.io/generated-by: OpenShiftNewApp
     labels:
       app: ${JENKINS_APP_NAME}
       template: ${JENKINS_APP_NAME}-template
-    name: jenkins-jnlp
+    name: ${JNLP_SERVICE_NAME}
   spec:
     ports:
     - name: agent
@@ -211,30 +201,22 @@ objects:
       protocol: TCP
       targetPort: 50000
     selector:
-      name: jenkins
+      name: ${JENKINS_SERVICE_NAME}
     sessionAffinity: None
     type: ClusterIP
-  status:
-    loadBalancer: {}
 - apiVersion: v1
   kind: PersistentVolumeClaim
   metadata:
-    annotations:
-      openshift.io/generated-by: OpenShiftNewApp
-      pv.kubernetes.io/bind-completed: "yes"
-      pv.kubernetes.io/bound-by-controller: "yes"
     labels:
       app: ${JENKINS_APP_NAME}
       template: ${JENKINS_APP_NAME}-template
-    name: jenkins
+    name: ${JENKINS_SERVICE_NAME}
   spec:
     accessModes:
     - ReadWriteOnce
     resources:
       requests:
         storage: ${VOLUME_CAPACITY}
-    volumeName: vol135
-  status: {}
 - apiVersion: build.openshift.io/v1
   kind: BuildConfig
   metadata:
@@ -256,11 +238,9 @@ objects:
     source:
       dockerfile: |-
         FROM docker.io/openshift/jenkins-slave-maven-centos7:v3.9
-
-              USER root
+        USER root
         RUN yum -y install skopeo && yum clean all
-
-              USER 1001
+        USER 1001
       type: Dockerfile
     strategy:
       dockerStrategy:
@@ -279,8 +259,22 @@ objects:
     - type: ConfigChange
     - imageChange: {}
       type: ImageChange
-  status:
-    lastVersion: 0
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    annotations:
+      serviceaccounts.openshift.io/oauth-redirectreference.jenkins: '{"kind":"OAuthRedirectReference","apiVersion":"v1","reference":{"kind":"Route","name":"${JENKINS_SERVICE_NAME}"}}'
+    name: ${JENKINS_SERVICE_NAME}
+- apiVersion: authorization.openshift.io/v1
+  groupNames: null
+  kind: RoleBinding
+  metadata:
+    name: ${JENKINS_SERVICE_NAME}_edit
+  roleRef:
+    name: edit
+  subjects:
+  - kind: ServiceAccount
+    name: ${JENKINS_SERVICE_NAME}
 parameters:
 - name: JENKINS_APP_NAME
   value: hgp-jenkins
