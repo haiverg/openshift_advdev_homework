@@ -30,8 +30,20 @@ TMPL_DIR=$(dirname $0)/../templates
 
 # To be Implemented by Student
 
-//Setting up Jenkins project base on Jenkins Template build on the course with Pavel
+#Setting up Jenkins project base on Jenkins Template build on the course with Pavel
 echo "Setting up Jenkins in project ${GUID}-jenkins from Git Repo ${REPO} for Cluster ${CLUSTER}"
 oc new-app -f ${TMPL_DIR}/hgp-jenkins.yaml -n $GUID-jenkins
-oc -n $GUID-jenkins rollout status dc/jenkins -w
+oc rollout status dc/jenkins -w -n $GUID-jenkins
 
+echo "Configuring Jenkins Slave Maven"
+oc new-app -f ${TMPL_DIR}/hgp-jenkins-configmap.yaml --param GUID=${GUID} -n ${GUID}-jenkins
+
+#Setting up jenkins pipelines on Openshift 
+echo "Creating and configuring Build Configs for 3 pipelines"
+oc new-build ${REPO} --name="mlbparks-pipeline" --strategy=pipeline --context-dir="MLBParks" -n $GUID-jenkins
+oc set env bc/mlbparks-pipeline CLUSTER=${CLUSTER} GUID=${GUID} -n $GUID-jenkins
+
+oc new-build ${REPO} --name="nationalparks-pipeline" --strategy=pipeline --context-dir="Nationalparks" -n $GUID-jenkins
+oc set env bc/nationalparks-pipeline CLUSTER=${CLUSTER} GUID=${GUID} -n $GUID-jenkins
+
+oc new-build ${REPO} --name="parksmap-pipeline" --strategy=pipeline --context-dir="ParksMap" -n $GUID-jenkins
