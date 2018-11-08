@@ -124,6 +124,30 @@ podTemplate(
       }
 
 
+      stage('Blue/Green deployment to prod') {
+
+          curApp = sh(returnStdout: true, script: "oc get route ${appName} -n ${prodProj} -o jsonpath='{ .spec.to.name }'").trim()
+          if (curApp == "${appName}-green") {
+            newApp = "${appName}-blue"
+          }
+          else {
+            newApp = "${appName}-green"
+          }
+             
+          echo "Active app: ${curApp}"
+          echo "Destination app: ${newApp}"
+
+          // Update prod DC with new image
+          sh "oc set image dc/${newApp} ${newApp}=docker-registry.default.svc:5000/${prodProj}/${appName}:${prodTag} -n ${prodProj}"
+
+          // Deploy non-active app
+          openshiftDeploy namespace: prodProj, depCfg: newApp, verbose: 'false', waitTime: '', waitUnit: 'sec'
+          openshiftVerifyDeployment namespace: prodProj, depCfg: newApp, replicaCount: '1', verbose: 'false', verifyReplicaCount: 'true', waitTime: '', waitUnit: 'sec'
+          openshiftVerifyService namespace: prodProj, svcName: newApp, verbose: 'false'
+      }
+
+
+
 
     }
   }
