@@ -107,14 +107,7 @@ podTemplate(
       }
 
       stage('Copy Image to Nexus Docker Registry') {
-          sh "skopeo copy \
-                --src-tls-verify=false \
-                --dest-tls-verify=false \
-                --src-creds openshift:\$(oc whoami -t) \
-                --dest-creds admin:admin123 \
-                docker://docker-registry.default.svc.cluster.local:5000/${devProj}/${appName}:${devTag} \
-                docker://nexus3-registry.${GUID}-nexus.svc.cluster.local:5000/${appName}:${devTag}
-             "
+          sh "skopeo copy --src-tls-verify=false --dest-tls-verify=false --src-creds openshift:\$(oc whoami -t) --dest-creds admin:admin123 docker://docker-registry.default.svc.cluster.local:5000/${devProj}/${appName}:${devTag} docker://nexus3-registry.${GUID}-nexus.svc.cluster.local:5000/${appName}:${devTag}"
       }
 
 
