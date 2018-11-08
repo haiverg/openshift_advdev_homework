@@ -51,7 +51,7 @@ podTemplate(
 
       // Build app
       stage("Build") { 
-      //    sh "${mvnCmd} clean package -DskipTests"
+          sh "${mvnCmd} clean package -DskipTests"
       }
     }
   }
