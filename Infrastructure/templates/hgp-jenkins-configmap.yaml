@@ -39,7 +39,7 @@ objects:
         <containers>
           <org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate>
             <name>jnlp</name>
-            <image>docker-registry.default.svc:5000/${GUID}-jenkins/jenkins-slave-maven-appdev:v3.9</image>
+            <image>docker-registry.default.svc:5000/${GUID}-jenkins/jenkins-slave-appdev</image>
             <privileged>false</privileged>
             <alwaysPullImage>false</alwaysPullImage>
             <workingDir>/tmp</workingDir>
