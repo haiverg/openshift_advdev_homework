@@ -1,4 +1,4 @@
-// Jenkinsfile for ParksMap (based on the Nationalpark Jenkinsfile)
+// Jenkinsfile for ParksMap (based on the Nationalpark and MBLParks Jenkinsfiles)
 podTemplate(
   label: "maven-appdev",
   cloud: "openshift",
