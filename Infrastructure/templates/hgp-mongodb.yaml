@@ -1,0 +1,129 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+labels:
+  app: ${MONGODB_APP_NAME}
+  template: ${MONGODB_APP_NAME}-template
+metadata:
+  name: advdev-mongodb
+objects:
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: "mongodb-internal"
+    labels:
+      name: "mongodb"
+      app: ${MONGODB_APP_NAME}
+      template: ${MONGODB_APP_NAME}-template
+    annotations:
+      service.alpha.kubernetes.io/tolerate-unready-endpoints: "true"
+  spec:
+    clusterIP: None
+    ports:
+      - name: mongodb
+        port: 27017
+    selector:
+      name: "mongodb"
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: "mongodb"
+    labels:
+      name: "mongodb"
+      app: ${MONGODB_APP_NAME}
+      template: ${MONGODB_APP_NAME}-template
+  spec:
+    ports:
+      - name: mongodb
+        port: 27017
+    selector:
+      name: "mongodb"
+- apiVersion: apps/v1
+  kind: StatefulSet
+  metadata:
+    labels:
+      app: ${MONGODB_APP_NAME}
+      template: ${MONGODB_APP_NAME}-template
+    name: "mongodb"
+  spec:
+    serviceName: "mongodb-internal"
+    replicas: ${MONGO_REPLICAS_COUNT}
+    selector:
+      matchLabels:
+        name: mongodb
+    template:
+      metadata:
+        labels:
+          name: "mongodb"
+      spec:
+        containers:
+          - name: mongo-container
+            image: "registry.access.redhat.com/rhscl/mongodb-34-rhel7:latest"
+            ports:
+              - containerPort: 27017
+            args:
+              - "run-mongod-replication"
+            volumeMounts:
+              - name: mongo-data
+                mountPath: "/var/lib/mongodb/data"
+            env:
+              - name: MONGODB_DATABASE
+                valueFrom:
+                  configMapKeyRef:
+                    name: ${MONGO_CONFIGMAP_NAME}
+                    key: DB_NAME
+              - name: MONGODB_USER
+                valueFrom:
+                  configMapKeyRef:
+                    name: ${MONGO_CONFIGMAP_NAME}
+                    key: DB_USERNAME
+              - name: MONGODB_PASSWORD
+                valueFrom:
+                  configMapKeyRef:
+                    name: ${MONGO_CONFIGMAP_NAME}
+                    key: DB_PASSWORD
+              - name: MONGODB_ADMIN_PASSWORD
+                valueFrom:
+                  configMapKeyRef:
+                    name: ${MONGO_CONFIGMAP_NAME}
+                    key: DB_PASSWORD
+              - name: MONGODB_REPLICA_NAME
+                valueFrom:
+                  configMapKeyRef:
+                    name: ${MONGO_CONFIGMAP_NAME}
+                    key: DB_REPLICASET
+              - name: MONGODB_KEYFILE_VALUE
+                value: "12345678901234567890"
+              - name: MONGODB_SERVICE_NAME
+                value: "mongodb-internal"
+            readinessProbe:
+              exec:
+                command:
+                  - stat
+                  - /tmp/initialized
+    volumeClaimTemplates:
+      - metadata:
+          name: mongo-data
+          labels:
+            name: "mongodb"
+        spec:
+          accessModes: [ ReadWriteOnce ]
+          resources:
+            requests:
+              storage: ${MONGO_VOLUME_SIZE}
+parameters:
+- name: MONGODB_APP_NAME
+  value: advdev-mongodb
+  displayName: MongoDB database App Name
+  description: The name of MongoDB database Aplication.
+- name: MONGO_VOLUME_SIZE
+  value: 4Gi
+  displayName: Mongo Volume size
+  description: Size of mongodb volume
+- name: MONGO_REPLICAS_COUNT
+  value: "3"
+  displayName: Replication factor for Mongo
+  description: Number of mongodb replicas
+- name: MONGO_CONFIGMAP_NAME
+  value: parksdb-conf
+  displayName: ConfigMap name with MongoDB configuration
+  description: ConfigMap name with MongoDB configuration
