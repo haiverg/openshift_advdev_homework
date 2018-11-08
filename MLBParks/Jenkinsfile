@@ -110,9 +110,12 @@ podTemplate(
           echo "Status: " + status
           if (status != "200") {
              error 'Integration Create Test Failed!'
-
-
+          }
       }
+
+
+
+
 
 
     }
