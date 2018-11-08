@@ -1,6 +1,6 @@
-// Jenkinsfile for ParksMap
+// Jenkinsfile for ParksMap (based on the Nationalpark Jenkinsfile)
 podTemplate(
-  label: "skopeo-pod",
+  label: "maven-appdev",
   cloud: "openshift",
   inheritFrom: "maven",
   containers: [
@@ -11,8 +11,11 @@ podTemplate(
       resourceLimitMemory: "2Gi"
     )
   ]
-) {
-  node('skopeo-pod') {
+) 
+
+{
+  node('maven-appdev') 
+  {
     echo "GUID: ${GUID}"
     echo "CLUSTER: ${CLUSTER}"
 
@@ -21,8 +24,138 @@ podTemplate(
     // Also copy "../nexus_settings.xml" to your build directory
     // and replace 'GUID' in the file with your ${GUID} to point to >your< Nexus instance
 
+    def appDir = "ParksMap"
+  
+     //Checkout Source Code 
+     stage('Checkout Source'){
+          checkout scm
+     }
+  
+    //Extract version and other properties from the pom.xml
+
+    dir(appDir)
+    {
+      def appName = getArtifactIdFromPom("pom.xml")
+      def appVer = getVersionFromPom("pom.xml")
+      //Set the tag for the development image: version + build number
+      def devTag  = "${appVer}-${BUILD_NUMBER}"
+      //Set the tag for the production image: version
+      def prodTag = "${appVer}"
+      def devProj = "${GUID}-parks-dev"
+      def prodProj = "${GUID}-parks-prod"
+      def mvnCmd = "mvn -s ./nexus_settings.xml"
+    
+      echo "Copy modified nexus_settings.xml to current directory"
+      sh "sed 's/GUID/${GUID}/' ../nexus_settings.xml > ./nexus_settings.xml"
+
+
+      // Build app
+      stage("Build") { 
+          sh "${mvnCmd} clean package -DskipTests"
+      }
+
+      // Run unit & code coverage analysis tests in parallel
+      stage('Run Tests') {
+        parallel (
+          "Run Unit tests": {
+            sh "${mvnCmd} test"
+          },
+          "Run code analysis tests": {
+            def SONAR_URL = "http://sonarqube.${GUID}-sonarqube.svc:9000"
+            sh "${mvnCmd} sonar:sonar -Dsonar.host.url=${SONAR_URL} -Dsonar.projectName=${appName}-${devTag}"
+          }
+        )
+      }
+
+      stage('Publish artifact to Nexus') {
+          def NEXUS_URL = "http://nexus3-${GUID}-nexus.apps.${CLUSTER}/repository/releases"
+          sh "${mvnCmd} deploy -DskipTests=true -DaltDeploymentRepository=nexus::default::${NEXUS_URL}"
+      }
+
+      stage('Build image') {
+          echo "Building OpenShift container image ${appName}:${devTag}"        
+          sh "oc start-build ${appName} --from-file=./target/${appName}.jar --follow -n ${devProj}"
+          
+          // tag image with version and build Number (devTag)
+          openshiftTag  alias: 'false', 
+                      srcStream: appName,
+                      destStream: appName,
+                      srcTag: 'latest',
+                      destTag: devTag, 
+                      namespace: devProj,
+                      destinationNamespace: devProj,
+                      verbose: 'false'
+      }
+
+      stage('Deploy to Dev') {
+          echo "Deploying image to DevProj"                    
+          
+          //Update the image on the Development Deployment Config
+          sh "oc set image dc/${appName} ${appName}=docker-registry.default.svc:5000/${devProj}/${appName}:${devTag} -n ${devProj}"
+          
+          //Deploy the development application 
+          openshiftDeploy namespace: devProj, depCfg: appName,  verbose: 'false', waitTime: '', waitUnit: 'sec'
+          openshiftVerifyDeployment namespace: devProj, depCfg: appName, replicaCount: '1', verbose: 'false', verifyReplicaCount: 'false', waitTime: '', waitUnit: 'sec'
+          openshiftVerifyService namespace: devProj, svcName: appName, verbose: 'false'
+      }
+
+      stage('Integration Tests') {
+
+          sleep 15
+          sh "curl -i http://${appName}.${devProj}.svc:8080/ws/appname/ | fgrep 200"
+
+      }
+
+      stage('Copy Image to Nexus Docker Registry') {
+          sh "skopeo copy --src-tls-verify=false --dest-tls-verify=false --src-creds openshift:\$(oc whoami -t) --dest-creds admin:admin123 docker://docker-registry.default.svc.cluster.local:5000/${devProj}/${appName}:${devTag} docker://nexus3-registry.${GUID}-nexus.svc.cluster.local:5000/${appName}:${devTag}"
+      }
+     
+
+      stage('Tag Image for production') {
+          // Tag image with prod tag
+          openshiftTag  alias: 'false', 
+                        srcStream: appName,
+                        destStream: appName, 
+                        srcTag: devTag,
+                        destTag: prodTag, 
+                        namespace: devProj,
+                        destinationNamespace: prodProj, 
+                        verbose: 'false'
+      }
+
+
+      stage('Blue/Green deployment to prod') {
+
+          curApp = sh(returnStdout: true, script: "oc get route ${appName} -n ${prodProj} -o jsonpath='{ .spec.to.name }'").trim()
+          if (curApp == "${appName}-green") {
+            newApp = "${appName}-blue"
+          }
+          else {
+            newApp = "${appName}-green"
+          }
+             
+          echo "Active app: ${curApp}"
+          echo "Destination app: ${newApp}"
+
+          // Update prod DC with new image
+          sh "oc set image dc/${newApp} ${newApp}=docker-registry.default.svc:5000/${prodProj}/${appName}:${prodTag} -n ${prodProj}"
+
+          // Deploy non-active app
+          openshiftDeploy namespace: prodProj, depCfg: newApp, verbose: 'false', waitTime: '', waitUnit: 'sec'
+          openshiftVerifyDeployment namespace: prodProj, depCfg: newApp, replicaCount: '1', verbose: 'false', verifyReplicaCount: 'true', waitTime: '', waitUnit: 'sec'
+          openshiftVerifyService namespace: prodProj, svcName: newApp, verbose: 'false'
+      }
+
+      stage('Switch apps in prod') {
+          input "Switch Production?"
+         
+          echo "Switching Production applications ${newApp}."
+          sh "oc patch route ${appName} -n ${prodProj} -p '{\"spec\":{\"to\":{\"name\":\"${newApp}\"}}}'"
+      }
+    }
   }
 }
+
 
 // Convenience Functions to read variables from the pom.xml
 // Do not change anything below this line.
