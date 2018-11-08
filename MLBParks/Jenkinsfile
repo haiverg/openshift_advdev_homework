@@ -106,7 +106,7 @@ podTemplate(
           //sh "curl -s -o /dev/null -w '%{http_code}\n' http://${appName}.${devProj}.svc:8080/ws/info/ | fgrep 200"
 
           def status = "000"
-          status = sh returnStdout: true, script: 'curl -s -o /dev/null -w '%{http_code}\n' http://${appName}.${devProj}.svc:8080/ws/info/ | fgrep 200'
+          status = sh returnStdout: true, script: 'curl -s -o /dev/null -w '%{http_code}' http://${appName}.${devProj}.svc:8080/ws/info/ | fgrep 200'
           echo "Status: " + status
           if (status != "200") {
              error 'Integration Create Test Failed!'
