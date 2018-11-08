@@ -29,7 +29,7 @@ objects:
         <alwaysPullImage>false</alwaysPullImage>
         <instanceCap>2147483647</instanceCap>
         <idleMinutes>10</idleMinutes>
-        <label>maven-custom</label>
+        <label>maven-appdev</label>
         <serviceAccount>jenkins</serviceAccount>
         <nodeSelector></nodeSelector>
         <customWorkspaceVolumeEnabled>false</customWorkspaceVolumeEnabled>
@@ -39,7 +39,7 @@ objects:
         <containers>
           <org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate>
             <name>jnlp</name>
-            <image>docker-registry.default.svc:5000/${GUID}-jenkins/jenkins-slave-maven</image>
+            <image>docker-registry.default.svc:5000/${GUID}-jenkins/jenkins-slave-maven-appdev:v3.9</image>
             <privileged>false</privileged>
             <alwaysPullImage>false</alwaysPullImage>
             <workingDir>/tmp</workingDir>
