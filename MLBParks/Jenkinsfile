@@ -1,6 +1,6 @@
 // Jenkinsfile for MLBParks
 podTemplate(
-  label: "skopeo-pod",
+  label: "maven-appdev",
   cloud: "openshift",
   inheritFrom: "maven",
   containers: [
@@ -12,7 +12,8 @@ podTemplate(
     )
   ]
 ) {
-  node('skopeo-pod') {
+
+  node('maven-appdev') {
     echo "GUID: ${GUID}"
     echo "CLUSTER: ${CLUSTER}"
 
@@ -20,6 +21,37 @@ podTemplate(
     // You need to build the application in directory `MLBParks`.
     // Also copy "../nexus_settings.xml" to your build directory
     // and replace 'GUID' in the file with your ${GUID} to point to >your< Nexus instance
+
+    def appDir = "MLBParks"
+  
+     //Checkout Source Code 
+     stage('Checkout Source'){
+          checkout scm
+     }
+  
+    //Extract version and other properties from the pom.xml
+
+    dir(appDir)
+    {
+      def appName = getArtifactIdFromPom("pom.xml")
+      def appVer = getVersionFromPom("pom.xml")
+      //Set the tag for the development image: version + build number
+      def devTag  = "${appVer}-${BUILD_NUMBER}"
+      //Set the tag for the production image: version
+      def prodTag = "${appVer}"
+      def devProj = "${GUID}-parks-dev"
+      def prodProj = "${GUID}-parks-prod"
+      def mvnCmd = "mvn -s ./nexus_settings.xml"
+    
+      echo "Copy modified nexus_settings.xml to current directory"
+      sh "sed 's/GUID/${GUID}/' ../nexus_settings.xml > ./nexus_settings.xml"
+
+
+      // Build app
+      stage("Build") { 
+//          sh "${mvnCmd} clean package -DskipTests"
+      }
+
  
   }
 }
