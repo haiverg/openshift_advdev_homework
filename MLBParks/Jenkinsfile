@@ -103,7 +103,7 @@ podTemplate(
 
           sleep 15
 
-          sh "curl -s -o /dev/null -w '%{http_code}\n' http://${appName}.${devProj}.svc:8080/ws/ | fgrep 200"
+          sh "curl -s -o /dev/null -w '%{http_code}\n' http://${appName}.${devProj}.svc:8080/ws/info/ | fgrep 200"
       }
 
 
