@@ -11,9 +11,11 @@ podTemplate(
       resourceLimitMemory: "2Gi"
     )
   ]
-) {
+) 
 
-  node('maven-appdev') {
+{
+  node('maven-appdev') 
+  {
     echo "GUID: ${GUID}"
     echo "CLUSTER: ${CLUSTER}"
 
@@ -49,10 +51,9 @@ podTemplate(
 
       // Build app
       stage("Build") { 
-//          sh "${mvnCmd} clean package -DskipTests"
+      //    sh "${mvnCmd} clean package -DskipTests"
       }
-
- 
+    }
   }
 }
 
