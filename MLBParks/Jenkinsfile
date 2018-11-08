@@ -53,6 +53,24 @@ podTemplate(
       stage("Build") { 
           sh "${mvnCmd} clean package -DskipTests"
       }
+
+      // Run unit & code coverage analysis tests in parallel
+      stage('Run Tests') {
+        parallel (
+          "Run Unit tests": {
+            sh "${mvnCmd} test"
+          },
+          "Run code coverage tests": {
+            def SONAR_URL = "http://sonarqube.${GUID}-sonarqube.svc:9000"
+            sh "${mvnCmd} sonar:sonar -Dsonar.host.url=${SONAR_URL} -Dsonar.projectName=${appName}-${devTag}"
+          }
+        )
+      }
+
+
+
+
+
     }
   }
 }
