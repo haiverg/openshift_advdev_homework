@@ -63,7 +63,7 @@ echo "Setting up NationalParks microservice in the project ${GUID}-parks-dev"
 oc new-build --binary=true --name=nationalparks redhat-openjdk18-openshift:1.2 -n ${GUID}-parks-dev
 oc new-app ${GUID}-parks-dev/nationalparks:0.0-0 --allow-missing-imagestream-tags=true --name=nationalparks -l type=parksmap-backend -n ${GUID}-parks-dev
 oc set triggers dc/nationalparks --remove-all -n ${GUID}-parks-dev
-oc expose dc/nationalparks --port 8080
+oc expose dc/nationalparks --port 8080 -n ${GUID}-parks-dev
 # Probes
 oc set probe dc/nationalparks --readiness --initial-delay-seconds 30 --failure-threshold 3 --get-url=http://:8080/ws/healthz/ -n ${GUID}-parks-dev
 oc set probe dc/nationalparks --liveness --initial-delay-seconds 30 --failure-threshold 3 --get-url=http://:8080/ws/healthz/ -n ${GUID}-parks-dev
