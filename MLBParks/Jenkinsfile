@@ -99,7 +99,12 @@ podTemplate(
           openshiftVerifyService namespace: devProj, svcName: appName, verbose: 'false'
       }
 
+      stage('Integration Tests') {
 
+          sleep 15
+
+          sh "curl -s -o /dev/null -w '%{http_code}\n' http://${appName}.${devProj}.svc:8080/ws/data/all | fgrep 200"
+      }
 
 
     }
