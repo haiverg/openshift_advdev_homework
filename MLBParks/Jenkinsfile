@@ -76,11 +76,6 @@ podTemplate(
           echo "Building OpenShift container image ${appName}:${devTag}"        
           sh "oc start-build ${appName} --from-file=./target/${appName}.war --follow -n ${devProj}"
           
-          //def NEXUS_URL_PATH = "http://nexus3-${GUID}-nexus.svc:8081/repository/releases/com/openshift/evg/roadshow/mlbparks"
-          //echo "${NEXUS_URL_PATH}/${version}/mlbparks-${version}.war"
-          //def NEXUS_URL = "http://nexus3-${GUID}-nexus.apps.${CLUSTER}/repository/releases/com/openshift/evg/roadshow/mlbparks"
-          //sh "oc start-build ${appName} --follow --from-file=${NEXUS_URL_PATH}/${version}/mlbparks-${version}.war -n ${devProj}"  
-          //sh "oc start-build ${appName} --follow --from-file=http://nexus3-${GUID}-nexus.svc:8081/repository/releases/com/openshift/evg/roadshow/mlbparks/${version}/mlbparks-${version}.war -n ${devProj}"
           // tag image with version and build Number (devTag)
           openshiftTag  alias: 'false', 
                       srcStream: appName,
@@ -92,7 +87,17 @@ podTemplate(
                       verbose: 'false'
       }
 
-
+      stage('Deploy to Dev') {
+          echo "Deploying image to DevProj"                    
+          
+          //Update the image on the Development Deployment Config
+          sh "oc set image dc/${appName} ${appName}=docker-registry.default.svc:5000/${devProj}/${appName}:${devTag} -n ${devProj}"
+          
+          //Deploy the development application 
+          openshiftDeploy namespace: devProj, depCfg: appName,  verbose: 'false', waitTime: '', waitUnit: 'sec'
+          openshiftVerifyDeployment namespace: devProj, depCfg: appName, replicaCount: '1', verbose: 'false', verifyReplicaCount: 'false', waitTime: '', waitUnit: 'sec'
+          openshiftVerifyService namespace: devProj, svcName: appName, verbose: 'false'
+      }
 
 
 
