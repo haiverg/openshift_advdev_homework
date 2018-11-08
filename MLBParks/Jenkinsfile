@@ -67,7 +67,10 @@ podTemplate(
         )
       }
 
-
+      stage('Publish artifact to Nexus') {
+          def NEXUS_URL = "http://nexus3-${GUID}-nexus.apps.${CLUSTER}/repository/releases"
+          sh "${mvnCmd} deploy -DskipTests=true -DaltDeploymentRepository=nexus::default::${NEXUS_URL}"
+      }
 
 
 
