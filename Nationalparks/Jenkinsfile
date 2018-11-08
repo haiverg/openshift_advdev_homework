@@ -74,7 +74,7 @@ podTemplate(
 
       stage('Build image') {
           echo "Building OpenShift container image ${appName}:${devTag}"        
-          sh "oc start-build ${appName} --from-file=./target/${appName}.war --follow -n ${devProj}"
+          sh "oc start-build ${appName} --from-file=./target/${appName}.jar --follow -n ${devProj}"
           
           // tag image with version and build Number (devTag)
           openshiftTag  alias: 'false', 
