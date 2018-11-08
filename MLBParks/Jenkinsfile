@@ -60,7 +60,7 @@ podTemplate(
           "Run Unit tests": {
             sh "${mvnCmd} test"
           },
-          "Run code coverage tests": {
+          "Run code analysis tests": {
             def SONAR_URL = "http://sonarqube.${GUID}-sonarqube.svc:9000"
             sh "${mvnCmd} sonar:sonar -Dsonar.host.url=${SONAR_URL} -Dsonar.projectName=${appName}-${devTag}"
           }
@@ -75,7 +75,8 @@ podTemplate(
       stage('Build image') {
           echo "Building OpenShift container image ${appName}:${devTag}"        
           //sh "oc start-build ${appName} --from-file=./target/${appName}.war --follow -n ${devProj}"
-          def NEXUS_URL = "http://nexus3-${GUID}-nexus.apps.${CLUSTER}/repository/releases/com/openshift/evg/roadshow/mlbparks"
+          def NEXUS_URL = "http://nexus3-${GUID}-nexus.svc.cluster.local:8081/repository/releases/com/openshift/evg/roadshow/mlbparks"
+          //def NEXUS_URL = "http://nexus3-${GUID}-nexus.apps.${CLUSTER}/repository/releases/com/openshift/evg/roadshow/mlbparks"
           sh "oc start-build ${appName} --follow --from-file=${NEXUS_URL}/${version}/mlbparks-${version}.war -n ${devProj}"  
           // tag image with version and build Number (devTag)
           openshiftTag  alias: 'false', 
