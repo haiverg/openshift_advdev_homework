@@ -74,8 +74,9 @@ podTemplate(
 
       stage('Build image') {
           echo "Building OpenShift container image ${appName}:${devTag}"        
-          sh "oc -n ${devProj} start-build ${appName} --from-file=./target/${appName}.war --follow"
-
+          //sh "oc start-build ${appName} --from-file=./target/${appName}.war --follow -n ${devProj}"
+          def NEXUS_URL = "http://nexus3-${GUID}-nexus.apps.${CLUSTER}/repository/releases/com/openshift/evg/roadshow/mlbparks"
+          sh "oc start-build ${appName} --follow --from-file=${NEXUS-URL}/${version}/mlbparks-${version}.war -n ${devProj}"  
           // tag image with version and build Number (devTag)
           openshiftTag  alias: 'false', 
                       srcStream: appName,
