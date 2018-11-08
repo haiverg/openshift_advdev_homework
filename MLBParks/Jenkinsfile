@@ -146,9 +146,12 @@ podTemplate(
           openshiftVerifyService namespace: prodProj, svcName: newApp, verbose: 'false'
       }
 
-
-
-
+      stage('Switch apps in prod') {
+          input "Switch Production?"
+         
+          echo "Switching Production applications ${newApp}."
+          sh "oc patch route ${appName} -n ${prodProj} -p '{\"spec\":{\"to\":{\"name\":\"${newApp}\"}}}'"
+      }
     }
   }
 }
