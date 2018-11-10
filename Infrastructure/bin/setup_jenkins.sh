@@ -47,9 +47,13 @@ oc new-app -f ${TMPL_DIR}/hgp-jenkins-configmap.yaml --param GUID=${GUID} -n ${G
 echo "Creating and configuring Build Configs for 3 pipelines"
 oc new-build ${REPO} --name="mlbparks-pipeline" --strategy=pipeline --context-dir="MLBParks" -n $GUID-jenkins
 oc set env bc/mlbparks-pipeline CLUSTER=${CLUSTER} GUID=${GUID} -n $GUID-jenkins
+oc delete build/mlbparks-pipeline-1
 
 oc new-build ${REPO} --name="nationalparks-pipeline" --strategy=pipeline --context-dir="Nationalparks" -n $GUID-jenkins
 oc set env bc/nationalparks-pipeline CLUSTER=${CLUSTER} GUID=${GUID} -n $GUID-jenkins
+oc delete build/nationalparks-pipeline-1
 
 oc new-build ${REPO} --name="parksmap-pipeline" --strategy=pipeline --context-dir="ParksMap" -n $GUID-jenkins
 oc set env bc/parksmap-pipeline CLUSTER=${CLUSTER} GUID=${GUID} -n $GUID-jenkins
+oc delete build/parksmap-pipeline-1
+
