@@ -12,7 +12,7 @@ TMPL_DIR=$(dirname $0)/../templates
 echo "Setting up Parks Production Environment in project ${GUID}-parks-prod"
 
 # add a sleep time to help use better the resources since the grade pipeline send the 5 setup project simmultaneously
-sleep 240
+sleep 480
 
 # Code to set up the parks production project. It will need a StatefulSet MongoDB, and two applications each (Blue/Green) for NationalParks, MLBParks and Parksmap.
 # The Green services/routes need to be active initially to guarantee a successful grading pipeline run.

@@ -31,7 +31,7 @@ TMPL_DIR=$(dirname $0)/../templates
 # To be Implemented by Student
 
 # add a sleep time to help use better the resources since the grade pipeline send the 5 setup project simmultaneously
-sleep 60
+sleep 240
 
 #Setting up Jenkins project base on Jenkins Template build on the course with Pavel
 echo "Setting up Jenkins in project ${GUID}-jenkins from Git Repo ${REPO} for Cluster ${CLUSTER}"
