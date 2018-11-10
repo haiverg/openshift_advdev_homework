@@ -12,7 +12,7 @@ TMPL_DIR=$(dirname $0)/../templates
 echo "Setting up Sonarqube in project $GUID-sonarqube"
 
 # add a sleep time to help use better the resources since the grade pipeline send the 5 setup project simmultaneously
-sleep 120
+#sleep 120
 
 
 # Code to set up the SonarQube project.
