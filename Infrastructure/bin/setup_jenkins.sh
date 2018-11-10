@@ -11,7 +11,7 @@ GUID=$1
 REPO=$2
 CLUSTER=$3
 
-//Set the dir name of the templates to use
+#Set the dir name of the templates to use
 TMPL_DIR=$(dirname $0)/../templates
 
 # Code to set up the Jenkins project to execute the
@@ -29,6 +29,9 @@ TMPL_DIR=$(dirname $0)/../templates
 # * CLUSTER: the base url of the cluster used (e.g. na39.openshift.opentlc.com)
 
 # To be Implemented by Student
+
+# add a sleep time to help use better the resources since the grade pipeline send the 5 setup project simmultaneously
+sleep 60
 
 #Setting up Jenkins project base on Jenkins Template build on the course with Pavel
 echo "Setting up Jenkins in project ${GUID}-jenkins from Git Repo ${REPO} for Cluster ${CLUSTER}"

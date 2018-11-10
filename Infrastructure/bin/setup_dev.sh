@@ -13,6 +13,9 @@ echo "Setting up Parks Development Environment in project ${GUID}-parks-dev"
 
 # To be Implemented by Student
 
+# add a sleep time to help use better the resources since the grade pipeline send the 5 setup project simmultaneously
+sleep 180
+
 echo "Setting up user permissions on projects ${GUID}-parks-dev"
 # Allow Jenkins to manipulate objects in Dev project
 oc policy add-role-to-user edit system:serviceaccount:${GUID}-jenkins:jenkins -n ${GUID}-parks-dev
