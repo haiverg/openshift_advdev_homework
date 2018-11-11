@@ -1,0 +1,18 @@
+Repo: https://github.com/haiverg/openshift_advdev_homework.git
+Build Number: 532
+
+Summary:
+
+In this POC we are demonstrating the implementation of a complete Openshift deployment pipeline for a microservices aplications, including the following:
+
+* Configuring infrastructure required to run CI components using templates
+	* Nexus as a artifact repository and registry 
+	* Sonarqube for code analysis
+	* Jenkins with slave pods
+	* Setup development project with mongoDB (single node)
+	* Setup production project with mongoDB (3 node cluster)
+
+* Deploy 3 microservices (2 backends and a frontend) in development and production environments
+	* Create deployment objects and configuration
+	* Create pipelines for automated building, testing and deployment
+	* Implement continuous deployment with Blue/Green rollouts
