@@ -56,6 +56,6 @@ oc set env bc/parksmap-pipeline CLUSTER=${CLUSTER} GUID=${GUID} -n $GUID-jenkins
 
 #Delete the empty build created by default
 sleep 10
-oc delete build/mlbparks-pipeline-1
-oc delete build/nationalparks-pipeline-1
-oc delete build/parksmap-pipeline-1
+oc delete build/mlbparks-pipeline-1 -n $GUID-jenkins
+oc delete build/nationalparks-pipeline-1 -n $GUID-jenkins
+oc delete build/parksmap-pipeline-1 -n $GUID-jenkins
