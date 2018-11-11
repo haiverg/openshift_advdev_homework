@@ -47,7 +47,7 @@ objects:
           - name: ENABLE_FATAL_ERROR_LOG_FILE
             value: "false"
             image: jenkins:latest
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           livenessProbe:
             failureThreshold: 3
             httpGet:
