@@ -39,7 +39,7 @@ objects:
       spec:
         containers:
         - image: sonatype/nexus3:latest
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           livenessProbe:
             exec:
               command:
