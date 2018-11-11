@@ -57,7 +57,7 @@ objects:
       spec:
         containers:
           - name: mongo-container
-            image: "registry.access.redhat.com/rhscl/mongodb-32-rhel7:latest"
+            image: "registry.access.redhat.com/rhscl/mongodb-32-rhel7:3.2.2"
             ports:
               - containerPort: 27017
             args:
