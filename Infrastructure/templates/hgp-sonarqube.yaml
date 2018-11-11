@@ -38,7 +38,7 @@ objects:
           - name: POSTGRESQL_DATABASE
             value: ${SONARQUBE_POSTGRESQL_DATABASE}
           image: registry.access.redhat.com/rhscl/postgresql-96-rhel7:latest 
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           livenessProbe:
             exec:
               command:
@@ -126,7 +126,7 @@ objects:
           - name: SONARQUBE_JDBC_USERNAME
             value: ${SONARQUBE_POSTGRESQL_USER}
           image: wkulhanek/${SONARQUBE_SERVICE_NAME}:${SONARQUBE_VERSION}
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           livenessProbe:
             exec:
               command:
